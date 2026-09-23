@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Due">
+<meta name="theme-color" content="#EDF0F2" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#121A21" media="(prefers-color-scheme: dark)">
+<title>Due</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EDF0F2;--surface:#FFFFFF;--ink:#17232E;--muted:#5E6B78;--line:#D5DBE1;
+  --accent:#245E8F;--accent-ink:#FFFFFF;--late:#B4441E;--ok:#2E7D5B;--soft:#E1E7EC;
+  font-family:'Atkinson Hyperlegible',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+  color-scheme:light dark;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#121A21;--surface:#1B252E;--ink:#E6ECF1;--muted:#93A1AE;--line:#2B3742;
+    --accent:#7FB2DE;--accent-ink:#0E1A24;--late:#F08A5D;--ok:#6CC49A;--soft:#26323D;}
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink)}
+body{padding:env(safe-area-inset-top,0px) 0 calc(78px + env(safe-area-inset-bottom,0px));font-size:17px;line-height:1.4;-webkit-tap-highlight-color:transparent}
+.wrap{max-width:640px;margin:0 auto;padding:0 18px}
+h3{margin:0 0 4px;font-size:21px}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+/* Header: the big date is the one bold element */
+header.top{padding:22px 0 6px}
+.date{display:flex;align-items:flex-end;gap:12px}
+#dnum{font-size:68px;font-weight:700;line-height:.82;letter-spacing:-.04em;color:var(--accent)}
+.date-words{display:flex;flex-direction:column;padding-bottom:2px}
+#dow{font-size:21px;font-weight:700;line-height:1.1}
+#dmon{color:var(--muted);font-size:15px}
+#summary{margin:12px 0 0;color:var(--muted)}
+#summary .late{color:var(--late);font-weight:700}
+
+/* Inputs & buttons */
+input,select,textarea{font:inherit;color:var(--ink);background:var(--surface);border:1.5px solid var(--line);border-radius:12px;padding:11px 13px;width:100%}
+textarea{resize:vertical}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);outline:none}
+button{font:inherit;cursor:pointer}
+.primary{background:var(--accent);color:var(--accent-ink);border:0;border-radius:12px;padding:11px 16px;font-weight:700;white-space:nowrap}
+.primary:disabled{opacity:.55}
+.ghost{background:var(--soft);color:var(--ink);border:0;border-radius:12px;padding:11px 14px}
+.danger{color:var(--late)}
+.linkbtn{background:none;border:0;color:var(--accent);padding:4px 0;font-weight:700}
+.hint{color:var(--muted);font-size:14px;margin:6px 0}
+form.qa{display:flex;gap:8px;margin:16px 0 4px}
+form.qa input{flex:1;min-width:0}
+
+.chips{display:flex;gap:8px;overflow-x:auto;padding:10px 0 2px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;border:1.5px solid var(--line);background:transparent;color:var(--ink);border-radius:999px;padding:6px 13px;font-size:15px}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:1px}
+
+h2.sec{font-size:15px;font-weight:700;color:var(--muted);margin:24px 2px 7px;display:flex;justify-content:space-between}
+h2.sec.late{color:var(--late)}
+
+/* Task list */
+ul.tasks{list-style:none;margin:0;padding:0;background:var(--surface);border-radius:14px;border:1px solid var(--line)}
+li.task{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border-top:1px solid var(--line)}
+li.task:first-child{border-top:0}
+.check{flex:none;width:26px;height:26px;border-radius:50%;border:2px solid var(--muted);background:transparent;margin-top:1px;padding:0}
+.check.flag{border-color:var(--late)}
+li.task.doneanim .check{background:var(--ok);border-color:var(--ok)}
+li.task.doneanim .title{text-decoration:line-through;color:var(--muted)}
+@media (prefers-reduced-motion:no-preference){li.task{transition:opacity .3s}li.task.doneanim{opacity:.45}}
+.tbody{flex:1;min-width:0;cursor:pointer}
+.title{font-weight:700;overflow-wrap:anywhere}
+.flagmark{color:var(--late)}
+.meta{font-size:14px;color:var(--muted);display:flex;flex-wrap:wrap;gap:2px 12px;margin-top:2px}
+.meta .late{color:var(--late);font-weight:700}
+.notes{font-size:14px;color:var(--muted);margin-top:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.empty{padding:40px 12px;text-align:center;color:var(--muted)}
+
+/* Panels */
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.stat b{display:block;font-size:32px;line-height:1.05}
+.stat span{color:var(--muted);font-size:14px}
+.stat.late b{color:var(--late)}
+.ai-out h4{margin:12px 0 3px;font-size:16px}
+.ai-out h4:first-child{margin-top:0}
+.ai-out ul{margin:0;padding-left:20px}
+.ai-out p{margin:6px 0}
+.day{padding:8px 0;border-top:1px solid var(--line)}
+.day:first-child{border-top:0;padding-top:0}
+.dayname{font-weight:700;font-size:15px}
+.day ul{margin:2px 0 0;padding-left:18px}
+.day li{cursor:pointer}
+.recur{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-top:1px solid var(--line)}
+.recur:first-child{border-top:0;padding-top:0}
+.recur small{color:var(--muted);font-size:14px;text-align:right}
+.hist{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--line)}
+.hist:first-child{border-top:0;padding-top:0}
+.hist time{color:var(--muted);font-size:14px;white-space:nowrap}
+.listrow{display:flex;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
+.listrow:first-child{border-top:0;padding-top:0}
+.listrow input{flex:1;min-width:0;padding:8px 10px}
+.swatch{width:30px;height:30px;border-radius:50%;border:0;flex:none}
+.count{color:var(--muted);font-size:14px;min-width:2ch;text-align:right}
+.iconbtn{background:none;border:0;color:var(--muted);font-size:20px;padding:4px 6px}
+
+/* Dialogs */
+dialog{border:0;border-radius:18px;padding:0;width:min(560px,94vw);max-height:88vh;background:var(--surface);color:var(--ink)}
+dialog::backdrop{background:rgba(8,16,24,.5)}
+.dlg{padding:18px}
+.dlg label{display:block;font-size:14px;color:var(--muted);margin:12px 0 4px}
+.row{display:flex;gap:10px}
+.row>div{flex:1;min-width:0}
+.actions{display:flex;gap:8px;align-items:center;margin-top:16px;flex-wrap:wrap}
+.spacer{flex:1}
+details{margin-top:12px}
+summary{color:var(--accent);font-weight:700;cursor:pointer}
+.preview{list-style:none;padding:0;margin:12px 0 0}
+.preview li{display:flex;gap:10px;padding:9px 0;border-top:1px solid var(--line)}
+.preview input{width:22px;height:22px;flex:none;margin-top:2px;accent-color:var(--accent)}
+
+/* Tabs */
+nav.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);display:flex;justify-content:center;padding-bottom:env(safe-area-inset-bottom,0px);z-index:5}
+nav.tabs button{flex:1;max-width:150px;background:none;border:0;font-size:12px;color:var(--muted);padding:9px 0 10px;display:flex;flex-direction:column;align-items:center;gap:3px}
+nav.tabs svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+nav.tabs button[aria-current="page"]{color:var(--accent);font-weight:700}
+
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(86px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:11px 15px;border-radius:12px;display:none;gap:16px;align-items:center;max-width:92vw;z-index:20}
+#toast.show{display:flex}
+#toast button{color:var(--bg);background:none;border:0;font-weight:700;text-decoration:underline;padding:0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="date"><span id="dnum"></span><div class="date-words"><span id="dow"></span><span id="dmon"></span></div></div>
+    <p id="summary"></p>
+  </header>
+
+  <main id="main">
+    <!-- TASKS -->
+    <section id="view-tasks" class="view">
+      <form class="qa" id="qa" autocomplete="off">
+        <input id="qaInput" placeholder="Add a reminder" aria-label="New reminder">
+        <button class="primary" type="submit">Add</button>
+      </form>
+      <button class="linkbtn" id="openDump" type="button">Sort a braindump with AI</button>
+      <div class="chips" id="chips" role="toolbar" aria-label="Filter by list"></div>
+      <div id="groups"></div>
+    </section>
+
+    <!-- REVIEW -->
+    <section id="view-review" class="view" hidden></section>
+
+    <!-- HISTORY -->
+    <section id="view-history" class="view" hidden>
+      <form class="qa" onsubmit="return false"><input id="histSearch" type="search" placeholder="Search what you’ve done" aria-label="Search history"></form>
+      <div id="histBody"></div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section id="view-settings" class="view" hidden>
+      <h2 class="sec"><span>Lists</span></h2>
+      <div class="panel" id="listsPanel"></div>
+      <form class="qa" id="addListForm" autocomplete="off">
+        <input id="newListName" placeholder="New list name" aria-label="New list name">
+        <button class="primary" type="submit">Add list</button>
+      </form>
+
+      <h2 class="sec"><span>AI</span></h2>
+      <div class="panel">
+        <label for="apiKey" class="hint" style="margin-top:0">Anthropic API key</label>
+        <input id="apiKey" type="password" autocomplete="off" placeholder="sk-ant-…">
+        <label for="modelSel" class="hint">Model</label>
+        <select id="modelSel">
+          <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 (fast, cheapest)</option>
+          <option value="claude-sonnet-5">Claude Sonnet 5 (more thoughtful)</option>
+        </select>
+        <p class="hint">Your key stays on this device and is sent only to Anthropic. Usage is billed to your Anthropic API account. No key? Use the “Copy for Claude app” buttons instead, which are free with your Claude plan.</p>
+        <div class="actions"><button class="ghost" id="clearKey" type="button">Remove key</button><span class="spacer"></span><button class="primary" id="saveKey" type="button">Save key</button></div>
+      </div>
+
+      <h2 class="sec"><span>Apple Reminders alerts</span></h2>
+      <div class="panel">
+        <label for="scName" class="hint" style="margin-top:0">Shortcut name</label>
+        <input id="scName" autocomplete="off">
+        <p class="hint">Must match the name of your shortcut exactly. The 🔔 button in a reminder sends its title, date, time and notes to that shortcut, which creates an alert in Apple Reminders.</p>
+      </div>
+
+      <h2 class="sec"><span>App icon badge</span></h2>
+      <div class="panel">
+        <p class="hint" style="margin-top:0">Show the number of overdue and due-today reminders on the home screen icon. Works after the app is added to your home screen.</p>
+        <button class="ghost" id="badgeBtn" type="button">Turn on icon badge</button>
+      </div>
+
+      <h2 class="sec"><span>Backup</span></h2>
+      <div class="panel">
+        <p class="hint" style="margin-top:0">Reminders are saved on this phone only. Export a backup now and then, or to move to a new phone.</p>
+        <div class="actions" style="margin-top:8px">
+          <button class="ghost" id="exportBtn" type="button">Export file</button>
+          <button class="ghost" id="copyBackup" type="button">Copy backup</button>
+          <button class="ghost" id="importBtn" type="button">Import file</button>
+        </div>
+        <details><summary>Paste a backup</summary>
+          <textarea id="pasteBackup" rows="3" style="margin-top:8px"></textarea>
+          <button class="ghost" id="pasteImport" type="button" style="margin-top:8px">Import pasted backup</button>
+        </details>
+        <input type="file" id="importFile" accept="application/json,.json" hidden>
+        <div class="actions"><button class="ghost danger" id="resetBtn" type="button">Erase everything</button></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<nav class="tabs" aria-label="Sections">
+  <button data-view="tasks" aria-current="page"><svg viewBox="0 0 24 24"><circle cx="5" cy="6" r="1.6"/><circle cx="5" cy="12" r="1.6"/><circle cx="5" cy="18" r="1.6"/><path d="M10 6h10M10 12h10M10 18h10"/></svg>Reminders</button>
+  <button data-view="review"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4M8 14h3"/></svg>Review</button>
+  <button data-view="history"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></svg>History</button>
+  <button data-view="settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Settings</button>
+</nav>
+
+<!-- Task editor -->
+<dialog id="taskDlg" aria-labelledby="taskDlgTitle">
+  <form class="dlg" id="taskForm" autocomplete="off">
+    <h3 id="taskDlgTitle">New reminder</h3>
+    <label for="fTitle">What</label>
+    <input id="fTitle" required>
+    <label for="fNotes">Notes</label>
+    <textarea id="fNotes" rows="2"></textarea>
+    <div class="row">
+      <div><label for="fList">List</label><select id="fList"></select></div>
+      <div><label for="fFlag">Priority</label><select id="fFlag"><option value="">Normal</option><option value="1">Important</option></select></div>
+    </div>
+    <div class="row">
+      <div><label for="fDue">Date</label><input type="date" id="fDue"></div>
+      <div><label for="fTime">Time</label><input type="time" id="fTime"></div>
+    </div>
+    <label for="fMode">Repeat</label>
+    <select id="fMode">
+      <option value="none">Doesn’t repeat</option>
+      <option value="fixed">On a fixed schedule</option>
+      <option value="after">After I complete it</option>
+    </select>
+    <div id="everyWrap" hidden>
+      <div class="row">
+        <div><label for="fEvery">Every</label><input type="number" id="fEvery" min="1" max="365" value="1" inputmode="numeric"></div>
+        <div><label for="fUnit">Unit</label><select id="fUnit"><option value="day">days</option><option value="week">weeks</option><option value="month">months</option></select></div>
+      </div>
+      <p class="hint" id="modeHint"></p>
+    </div>
+    <div id="editExtras" hidden>
+      <p class="hint" id="lastDone"></p>
+      <div class="actions" style="margin-top:6px">
+        <button type="button" class="ghost" data-post="1">Postpone to tomorrow</button>
+        <button type="button" class="ghost" data-post="7">Postpone a week</button>
+      </div>
+    </div>
+    <div class="actions" id="sendRow" hidden>
+      <button type="button" class="ghost" id="sendBtn" style="width:100%">🔔 Save and send to Reminders</button>
+    </div>
+    <div class="actions">
+      <button type="button" class="ghost danger" id="delBtn" hidden>Delete</button>
+      <span class="spacer"></span>
+      <button type="button" class="ghost" id="cancelBtn">Cancel</button>
+      <button type="submit" class="primary">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Braindump -->
+<dialog id="dumpDlg" aria-labelledby="dumpTitle">
+  <div class="dlg">
+    <h3 id="dumpTitle">Sort a braindump</h3>
+    <p class="hint">Type everything on your mind. AI turns it into reminders with lists, dates and repeats, then you choose which to add.</p>
+    <textarea id="dumpText" rows="6" aria-label="Your notes" placeholder="oil change soon, pay water bill by the 5th, call mom sunday, replace furnace filter every 3 months"></textarea>
+    <div class="actions">
+      <button class="ghost" id="dumpCopy" type="button">Copy for Claude app</button>
+      <span class="spacer"></span>
+      <button class="primary" id="dumpGo" type="button">Sort with AI</button>
+    </div>
+    <details id="pasteBack"><summary>Paste Claude’s reply</summary>
+      <textarea id="dumpReply" rows="4" style="margin-top:8px" aria-label="Claude's reply"></textarea>
+      <button class="ghost" id="dumpParse" type="button" style="margin-top:8px">Read reply</button>
+    </details>
+    <p class="hint" id="dumpStatus" role="status"></p>
+    <ul class="preview" id="dumpPreview"></ul>
+    <div class="actions">
+      <span class="spacer"></span>
+      <button class="ghost" type="button" id="dumpClose">Close</button>
+      <button class="primary" type="button" id="dumpAdd" hidden>Add selected</button>
+    </div>
+  </div>
+</dialog>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ---------- basics ---------- */
+const KEY='due.v1', APIKEY='due.apikey';
+const COLORS=['#245E8F','#7A5AA6','#2E7D5B','#B4441E','#A07D12','#2A8C95','#B23A6E','#5E6B78'];
+const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const DOWL=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const MONL=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const $=s=>document.querySelector(s);
+const uid=()=>Math.random().toString(36).slice(2,9)+Date.now().toString(36).slice(-5);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad=n=>String(n).padStart(2,'0');
+const fmtD=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const parseD=s=>{const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)};
+const todayStr=()=>fmtD(new Date());
+const isDate=s=>typeof s==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(s);
+const isTime=s=>typeof s==='string'&&/^\d{2}:\d{2}$/.test(s);
+function addInterval(s,n,unit){
+  const d=parseD(s); n=Math.max(0,parseInt(n)||0);
+  if(unit==='day') d.setDate(d.getDate()+n);
+  else if(unit==='week') d.setDate(d.getDate()+7*n);
+  else {const day=d.getDate();d.setDate(1);d.setMonth(d.getMonth()+n);
+    const last=new Date(d.getFullYear(),d.getMonth()+1,0).getDate();d.setDate(Math.min(day,last));}
+  return fmtD(d);
+}
+const daysBetween=(a,b)=>Math.round((parseD(b)-parseD(a))/864e5);
+const niceDate=s=>{const d=parseD(s);return DOW[d.getDay()]+', '+MON[d.getMonth()]+' '+d.getDate()};
+function fmtTime(t){if(!t)return'';let [h,m]=t.split(':').map(Number);const ap=h>=12?'PM':'AM';h=h%12||12;return h+':'+pad(m)+' '+ap}
+function dueLabel(t){
+  if(!t.due) return {text:'No date',late:false};
+  const diff=daysBetween(todayStr(),t.due); let text;
+  if(diff<-1) text=(-diff)+' days overdue'; else if(diff===-1) text='Yesterday';
+  else if(diff===0) text='Today'; else if(diff===1) text='Tomorrow';
+  else if(diff<7) text=DOWL[parseD(t.due).getDay()]; else text=niceDate(t.due);
+  if(t.time) text+=' '+fmtTime(t.time);
+  return {text,late:diff<0};
+}
+function repeatText(r){
+  if(!r||r.mode==='none') return '';
+  const n=parseInt(r.every)||1;
+  const base=n===1?'every '+r.unit:'every '+n+' '+r.unit+'s';
+  return r.mode==='after'?base+' after done':base;
+}
+function ago(iso){const d=daysBetween(fmtD(new Date(iso)),todayStr());return d<=0?'today':d===1?'yesterday':d+' days ago'}
+
+/* ---------- state ---------- */
+function defaultState(){return{
+  lists:[{id:'home',name:'Home',color:COLORS[0]},{id:'work',name:'Work',color:COLORS[1]},{id:'errands',name:'Errands',color:COLORS[2]}],
+  tasks:[],history:[],settings:{model:'claude-haiku-4-5-20251001'},ai:null}}
+function load(){try{const raw=localStorage.getItem(KEY);if(raw){return Object.assign(defaultState(),JSON.parse(raw))}}catch(e){}return defaultState()}
+let state=load();
+const ui={view:'tasks',filter:'all',editing:null};
+let undoSnap=null;
+function save(){
+  try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){toast('Couldn’t save on this device. Export a backup from Settings.')}
+  updateBadge();
+}
+const listById=id=>state.lists.find(l=>l.id===id)||state.lists[0]||{id:'',name:'No list',color:'#5E6B78'};
+const openTasks=()=>state.tasks.filter(t=>!t.done);
+function sortTasks(a,b){
+  const ad=a.due||'9999',bd=b.due||'9999'; if(ad!==bd) return ad<bd?-1:1;
+  const at=a.time||'99',bt=b.time||'99'; if(at!==bt) return at<bt?-1:1;
+  if(!!a.flag!==!!b.flag) return a.flag?-1:1;
+  return (a.createdAt||'')<(b.createdAt||'')?-1:1;
+}
+function newTask(p){return{id:uid(),title:p.title,notes:p.notes||'',
+  listId:p.listId||(ui.filter!=='all'?ui.filter:(state.lists[0]?.id||'')),
+  due:p.due||null,time:p.time||'',repeat:p.repeat||{mode:'none',every:1,unit:'week'},
+  flag:!!p.flag,postponed:0,done:false,createdAt:new Date().toISOString()}}
+
+/* ---------- toast ---------- */
+let toastTimer;
+function toast(msg,undo){
+  const el=$('#toast');
+  el.innerHTML='<span>'+esc(msg)+'</span>'+(undo?'<button id="undoBtn" type="button">Undo</button>':'');
+  el.classList.add('show'); clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>el.classList.remove('show'),5000);
+  if(undo) $('#undoBtn').onclick=()=>{if(undoSnap){state=JSON.parse(undoSnap);undoSnap=null;save();renderAll();el.classList.remove('show')}};
+}
+
+/* ---------- header ---------- */
+function renderHeader(){
+  const d=new Date(),today=todayStr(),open=openTasks();
+  $('#dnum').textContent=d.getDate();
+  $('#dow').textContent=DOWL[d.getDay()];
+  $('#dmon').textContent=MONL[d.getMonth()]+' '+d.getFullYear();
+  const o=open.filter(t=>t.due&&t.due<today).length, t=open.filter(t=>t.due===today).length;
+  const parts=[];
+  if(o) parts.push('<span class="late">'+o+' overdue</span>');
+  parts.push(t?t+' due today':'nothing else due today');
+  $('#summary').innerHTML=parts.join(', ')+'.';
+}
+
+/* ---------- tasks view ---------- */
+function taskRow(t){
+  const l=listById(t.listId),d=dueLabel(t),r=repeatText(t.repeat);
+  return '<li class="task" data-id="'+t.id+'">'+
+    '<button class="check'+(t.flag?' flag':'')+'" data-act="done" aria-label="Mark '+esc(t.title)+' done"></button>'+
+    '<div class="tbody" data-act="edit" role="button" tabindex="0">'+
+      '<div class="title">'+(t.flag?'<span class="flagmark" aria-label="Important">!</span> ':'')+esc(t.title)+'</div>'+
+      '<div class="meta"><span><span class="dot" style="background:'+l.color+'"></span>'+esc(l.name)+'</span>'+
+        '<span class="'+(d.late?'late':'')+'">'+esc(d.text)+'</span>'+
+        (r?'<span>↻ '+esc(r)+'</span>':'')+
+        (t.postponed>=2?'<span>pushed back '+t.postponed+'×</span>':'')+
+        (t.due&&t.alertSent===t.due+' '+(t.time||'')?'<span>🔔 in Reminders</span>':'')+
+      '</div>'+(t.notes?'<div class="notes">'+esc(t.notes)+'</div>':'')+
+    '</div></li>';
+}
+function renderTasks(){
+  if(ui.filter!=='all'&&!state.lists.some(l=>l.id===ui.filter)) ui.filter='all';
+  $('#chips').innerHTML='<button class="chip" data-filter="all" aria-pressed="'+(ui.filter==='all')+'">All</button>'+
+    state.lists.map(l=>'<button class="chip" data-filter="'+l.id+'" aria-pressed="'+(ui.filter===l.id)+'"><span class="dot" style="background:'+l.color+'"></span>'+esc(l.name)+'</button>').join('');
+  const today=todayStr();
+  const ts=openTasks().filter(t=>ui.filter==='all'||t.listId===ui.filter).sort(sortTasks);
+  const groups=[
+    ['Overdue',t=>t.due&&t.due<today,'late'],
+    ['Today',t=>t.due===today],
+    ['Next 7 days',t=>t.due&&t.due>today&&daysBetween(today,t.due)<=7],
+    ['Later',t=>t.due&&daysBetween(today,t.due)>7],
+    ['No date',t=>!t.due]];
+  let html='';
+  for(const [name,fn,cls] of groups){
+    const g=ts.filter(fn); if(!g.length) continue;
+    html+='<h2 class="sec '+(cls||'')+'"><span>'+name+'</span><span>'+g.length+'</span></h2><ul class="tasks">'+g.map(taskRow).join('')+'</ul>';
+  }
+  if(!html) html='<div class="empty"><p>Nothing '+(ui.filter==='all'?'':'in this list ')+'yet.</p><p>Type above to add a reminder, or tap <b>Sort a braindump with AI</b> to turn a messy list into organized ones.</p></div>';
+  $('#groups').innerHTML=html;
+}
+function quickParse(v){
+  let due=null; const m=v.match(/\s+(today|tonight|tomorrow)$/i);
+  if(m){v=v.slice(0,m.index);due=m[1].toLowerCase()==='tomorrow'?addInterval(todayStr(),1,'day'):todayStr()}
+  return {title:v.trim(),due};
+}
+$('#qa').addEventListener('submit',e=>{
+  e.preventDefault(); const v=$('#qaInput').value.trim(); if(!v) return;
+  const p=quickParse(v); if(!p.title) return;
+  state.tasks.push(newTask(p)); save(); $('#qaInput').value=''; renderAll(); toast('Added “'+p.title+'”');
+});
+$('#chips').addEventListener('click',e=>{const b=e.target.closest('[data-filter]');if(!b)return;ui.filter=b.dataset.filter;renderTasks()});
+
+function completeTask(id,li){
+  const t=state.tasks.find(x=>x.id===id); if(!t) return;
+  undoSnap=JSON.stringify(state);
+  state.history.unshift({id:uid(),taskId:t.id,title:t.title,listId:t.listId,doneAt:new Date().toISOString(),due:t.due||null});
+  if(state.history.length>3000) state.history.length=3000;
+  let msg;
+  if(t.repeat&&t.repeat.mode!=='none'){
+    const today=todayStr(),n=Math.max(1,parseInt(t.repeat.every)||1),u=t.repeat.unit; let next;
+    if(t.repeat.mode==='after') next=addInterval(today,n,u);
+    else{next=addInterval(t.due||today,n,u);let g=0;while(next<=today&&g++<1000) next=addInterval(next,n,u);}
+    t.due=next; t.postponed=0; msg='Done. Next: '+dueLabel(t).text;
+  } else { t.done=true; t.doneAt=new Date().toISOString(); msg='Done'; }
+  save();
+  if(li){li.classList.add('doneanim');setTimeout(renderAll,380)} else renderAll();
+  toast(msg,true);
+}
+
+/* delegation for task rows anywhere */
+$('#main').addEventListener('click',e=>{
+  const a=e.target.closest('[data-act]'); if(!a) return;
+  const holder=a.closest('[data-id]'); if(!holder) return;
+  if(a.dataset.act==='done') completeTask(holder.dataset.id,holder);
+  else if(a.dataset.act==='edit') openTask(holder.dataset.id);
+});
+$('#main').addEventListener('keydown',e=>{
+  if(e.key!=='Enter'&&e.key!==' ') return;
+  const a=e.target.closest('[data-act="edit"]'); if(!a) return;
+  e.preventDefault(); openTask(a.closest('[data-id]').dataset.id);
+});
+
+/* ---------- task dialog ---------- */
+const dlg=$('#taskDlg');
+function syncMode(){
+  const m=$('#fMode').value; $('#everyWrap').hidden=m==='none';
+  $('#modeHint').textContent=m==='fixed'?'The next date is counted from the due date, so it stays on schedule even if you finish late.':
+    m==='after'?'The next date is counted from the day you check it off. Good for filters, haircuts and other upkeep.':'';
+}
+$('#fMode').addEventListener('change',syncMode);
+function openTask(id){
+  const t=id?state.tasks.find(x=>x.id===id):null; ui.editing=t?t.id:null;
+  $('#taskDlgTitle').textContent=t?'Edit reminder':'New reminder';
+  $('#fList').innerHTML=state.lists.map(l=>'<option value="'+l.id+'">'+esc(l.name)+'</option>').join('');
+  $('#fTitle').value=t?t.title:''; $('#fNotes').value=t?t.notes:'';
+  $('#fList').value=t?t.listId:(ui.filter!=='all'?ui.filter:state.lists[0]?.id);
+  $('#fFlag').value=t&&t.flag?'1':''; $('#fDue').value=t&&t.due?t.due:''; $('#fTime').value=t?t.time:'';
+  const r=t?t.repeat:{mode:'none',every:1,unit:'week'};
+  $('#fMode').value=r.mode; $('#fEvery').value=r.every||1; $('#fUnit').value=r.unit||'week'; syncMode();
+  $('#editExtras').hidden=!t; $('#delBtn').hidden=!t;
+  if(t){
+    const hh=state.history.filter(h=>h.taskId===t.id);
+    $('#lastDone').textContent=hh.length?'Last done '+ago(hh[0].doneAt)+' · done '+hh.length+' time'+(hh.length>1?'s':'')+' total':'Not completed yet.';
+  }
+  syncSend(); dlg.showModal(); if(!t) setTimeout(()=>$('#fTitle').focus(),50);
+}
+function saveForm(){
+  const title=$('#fTitle').value.trim(); if(!title){$('#fTitle').reportValidity();return null}
+  const mode=$('#fMode').value;
+  let due=$('#fDue').value||null; if(mode!=='none'&&!due) due=todayStr();
+  const data={title,notes:$('#fNotes').value.trim(),listId:$('#fList').value,flag:!!$('#fFlag').value,
+    due,time:$('#fTime').value||'',repeat:{mode,every:Math.max(1,parseInt($('#fEvery').value)||1),unit:$('#fUnit').value}};
+  let t;
+  if(ui.editing){t=state.tasks.find(x=>x.id===ui.editing);Object.assign(t,data);toast('Saved')}
+  else{t=Object.assign(newTask(data),data);state.tasks.push(t);toast('Added “'+title+'”')}
+  save(); dlg.close(); renderAll(); return t;
+}
+$('#taskForm').addEventListener('submit',e=>{e.preventDefault();saveForm()});
+const syncSend=()=>{$('#sendRow').hidden=!$('#fDue').value};
+$('#fDue').addEventListener('input',syncSend);
+$('#fDue').addEventListener('change',syncSend);
+$('#sendBtn').onclick=()=>{const t=saveForm(); if(t) sendToReminders(t)};
+function sendToReminders(t){
+  if(!t.due){toast('Add a date first.');return}
+  const d=parseD(t.due), time=t.time||'09:00';
+  const payload={title:t.title,when:MONL[d.getMonth()]+' '+d.getDate()+', '+d.getFullYear()+' '+fmtTime(time),notes:t.notes||'',list:listById(t.listId).name};
+  const name=state.settings.shortcutName||'Send to Reminders';
+  t.alertSent=t.due+' '+(t.time||''); save(); renderAll();
+  location.href='shortcuts://run-shortcut?name='+encodeURIComponent(name)+'&input=text&text='+encodeURIComponent(JSON.stringify(payload));
+}
+$('#cancelBtn').onclick=()=>dlg.close();
+$('#delBtn').onclick=()=>{
+  if(!ui.editing) return; undoSnap=JSON.stringify(state);
+  state.tasks=state.tasks.filter(x=>x.id!==ui.editing); save(); dlg.close(); renderAll(); toast('Deleted',true);
+};
+dlg.querySelectorAll('[data-post]').forEach(b=>b.onclick=()=>{
+  const t=state.tasks.find(x=>x.id===ui.editing); if(!t) return; undoSnap=JSON.stringify(state);
+  t.due=addInterval(todayStr(),parseInt(b.dataset.post),'day'); t.postponed=(t.postponed||0)+1;
+  save(); dlg.close(); renderAll(); toast('Moved to '+dueLabel(t).text,true);
+});
+
+/* ---------- AI ---------- */
+const getKey=()=>{try{return localStorage.getItem(APIKEY)||''}catch(e){return''}};
+async function askClaude(system,user,maxTokens){
+  const key=getKey(); if(!key) throw new Error('NOKEY');
+  const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
+    headers:{'content-type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    body:JSON.stringify({model:state.settings.model||'claude-haiku-4-5-20251001',max_tokens:maxTokens||1500,system,messages:[{role:'user',content:user}]})});
+  let data={}; try{data=await res.json()}catch(e){}
+  if(!res.ok) throw new Error(data?.error?.message||('Request failed ('+res.status+')'));
+  return (data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('\n');
+}
+function copyText(s,msg){
+  const done=()=>toast(msg||'Copied. Paste it into the Claude app.');
+  if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(s).then(done).catch(()=>fallbackCopy(s,done));
+  else fallbackCopy(s,done);
+}
+function fallbackCopy(s,done){const ta=document.createElement('textarea');ta.value=s;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');done()}catch(e){toast('Couldn’t copy on this device.')}ta.remove()}
+
+function buildContext(){
+  const today=todayStr(), cutoff=Date.now()-30*864e5;
+  const open=openTasks().sort(sortTasks).map(t=>{
+    const r=repeatText(t.repeat);
+    return '- '+t.title+' ['+listById(t.listId).name+'] '+(t.due?'due '+t.due+(t.time?' '+t.time:''):'no date')+
+      (t.flag?', important':'')+(r?', repeats '+r:'')+(t.postponed?', postponed '+t.postponed+'x':'')+(t.notes?' — '+t.notes.slice(0,140):'');
+  }).join('\n')||'- none';
+  const done=state.history.filter(h=>new Date(h.doneAt).getTime()>=cutoff).slice(0,80).map(h=>'- '+h.title+' ('+fmtD(new Date(h.doneAt))+')').join('\n')||'- none';
+  return 'Today is '+DOWL[new Date().getDay()]+', '+today+'.\n\nMy lists: '+state.lists.map(l=>l.name).join(', ')+'\n\nOpen reminders:\n'+open+'\n\nCompleted in the last 30 days:\n'+done;
+}
+const OVERVIEW_SYS='You review a personal reminders app for its owner. Be brief, warm and practical, and refer to reminders by name. Format: section titles on their own line ending with a colon, followed by lines starting with "- ". No markdown symbols such as # or **. Use these sections: Focus today:, This week:, Worth rethinking: (things that keep slipping, duplicates, vague tasks to break down, errands to batch by place), Suggestions:. Keep it under 200 words and skip a section if it has nothing useful.';
+function renderAIText(t){
+  let out='',inList=false;
+  for(const raw of t.split('\n')){
+    const line=raw.trim(); if(!line) continue;
+    const b=line.match(/^[-•*]\s+(.*)/);
+    if(b){if(!inList){out+='<ul>';inList=true}out+='<li>'+esc(b[1].replace(/\*\*/g,''))+'</li>'}
+    else{if(inList){out+='</ul>';inList=false}
+      const h=line.replace(/^#+\s*/,'').replace(/\*\*/g,'');
+      out+=(/:$/.test(h)&&h.length<45)?'<h4>'+esc(h.slice(0,-1))+'</h4>':'<p>'+esc(h)+'</p>';}
+  }
+  if(inList) out+='</ul>'; return out;
+}
+
+/* ---------- review view ---------- */
+function renderReview(){
+  const today=todayStr(),open=openTasks();
+  const overdue=open.filter(t=>t.due&&t.due<today);
+  const week=open.filter(t=>t.due&&t.due>=today&&daysBetween(today,t.due)<=6);
+  const weekAgo=Date.now()-7*864e5;
+  const doneWeek=state.history.filter(h=>new Date(h.doneAt).getTime()>=weekAgo);
+  const slipping=open.filter(t=>(t.postponed||0)>=2||(t.due&&daysBetween(t.due,today)>=7)).sort(sortTasks);
+  let days='';
+  for(let i=0;i<7;i++){
+    const s=addInterval(today,i,'day'),d=parseD(s);
+    const items=open.filter(t=>t.due===s).sort(sortTasks);
+    days+='<div class="day"><div class="dayname">'+(i===0?'Today':i===1?'Tomorrow':DOWL[d.getDay()])+'</div>'+
+      (items.length?'<ul>'+items.map(t=>'<li data-id="'+t.id+'" data-act="edit" tabindex="0">'+esc(t.title)+(t.time?' · '+fmtTime(t.time):'')+'</li>').join('')+'</ul>':'<p class="hint" style="margin:2px 0 0">Nothing due</p>')+'</div>';
+  }
+  const hasKey=!!getKey();
+  $('#view-review').innerHTML=
+    '<h2 class="sec"><span>This week</span></h2>'+
+    '<div class="panel stats">'+
+      '<div class="stat'+(overdue.length?' late':'')+'"><b>'+overdue.length+'</b><span>overdue</span></div>'+
+      '<div class="stat"><b>'+week.length+'</b><span>due in the next 7 days</span></div>'+
+      '<div class="stat"><b>'+doneWeek.length+'</b><span>done in the last 7 days</span></div>'+
+      '<div class="stat"><b>'+slipping.length+'</b><span>keep slipping</span></div>'+
+    '</div>'+
+    '<h2 class="sec"><span>AI overview</span></h2>'+
+    '<div class="panel"><div class="ai-out" id="aiOut">'+
+      (state.ai?renderAIText(state.ai.text)+'<p class="hint">Made '+new Date(state.ai.at).toLocaleString([], {weekday:'short',hour:'numeric',minute:'2-digit'})+'</p>':
+      '<p class="hint" style="margin-top:0">Get a plain-language read on what to focus on today, what keeps slipping, and what to batch together.</p>')+
+    '</div><div class="actions"><button class="ghost" id="aiCopy" type="button">Copy for Claude app</button><span class="spacer"></span>'+
+      '<button class="primary" id="aiGo" type="button">'+(state.ai?'Refresh overview':'Get overview')+'</button></div>'+
+      (hasKey?'':'<p class="hint">To run it here, add an API key in Settings. Or copy it into the Claude app for free.</p>')+
+    '</div>'+
+    (slipping.length?'<h2 class="sec late"><span>Keeps slipping</span><span>'+slipping.length+'</span></h2><ul class="tasks">'+slipping.map(taskRow).join('')+'</ul>':'')+
+    '<h2 class="sec"><span>Next 7 days</span></h2><div class="panel">'+days+'</div>';
+  $('#aiCopy').onclick=()=>copyText(OVERVIEW_SYS+'\n\n'+buildContext());
+  $('#aiGo').onclick=async()=>{
+    if(!getKey()){toast('Add your API key in Settings, or use Copy for Claude app.');return}
+    const btn=$('#aiGo'); btn.disabled=true; btn.textContent='Thinking…';
+    try{const text=await askClaude(OVERVIEW_SYS,buildContext(),900);state.ai={text,at:Date.now()};save();renderReview()}
+    catch(err){btn.disabled=false;btn.textContent='Try again';toast('AI error: '+err.message)}
+  };
+}
+
+/* ---------- braindump ---------- */
+const dump=$('#dumpDlg'); let dumpItems=[];
+function dumpPrompt(text){
+  const today=todayStr();
+  return 'Today is '+DOWL[new Date().getDay()]+', '+today+'. My reminder lists: '+state.lists.map(l=>l.name).join(', ')+'.\n'+
+  'Turn the notes below into reminders. Reply with ONLY a JSON array and no other text. Each item: '+
+  '{"title": short action phrase, "list": one of my list names, "due": "YYYY-MM-DD" or null, "time": "HH:MM" or null, '+
+  '"repeat": {"mode": "none" | "fixed" | "after", "every": number, "unit": "day" | "week" | "month"}, "flag": true only if clearly urgent, "notes": extra detail or ""}. '+
+  'Use "after" for upkeep tasks (filters, haircuts, oil changes) and "fixed" for calendar-bound ones (bills, birthdays, trash day). Only set dates the notes imply. Split combined items into separate reminders.\n\nNotes:\n'+text;
+}
+function parseItems(text){
+  const s=text.indexOf('['),e=text.lastIndexOf(']'); if(s<0||e<=s) throw new Error('No list of reminders found in that reply.');
+  const arr=JSON.parse(text.slice(s,e+1)); if(!Array.isArray(arr)) throw new Error('Unexpected reply format.');
+  return arr.filter(x=>x&&x.title).map(x=>{
+    const l=state.lists.find(l=>l.name.toLowerCase()===String(x.list||'').toLowerCase());
+    const r=x.repeat||{}; const mode=['fixed','after'].includes(r.mode)?r.mode:'none';
+    return {title:String(x.title).slice(0,200),notes:String(x.notes||'').slice(0,500),listId:(l||state.lists[0]||{}).id||'',
+      due:isDate(x.due)?x.due:(mode!=='none'?todayStr():null),time:isTime(x.time)?x.time:'',flag:!!x.flag,
+      repeat:{mode,every:Math.max(1,parseInt(r.every)||1),unit:['day','week','month'].includes(r.unit)?r.unit:'week'}};
+  });
+}
+function showPreview(items){
+  dumpItems=items;
+  if(!items.length){$('#dumpStatus').textContent='No reminders found. Try adding more detail.';$('#dumpPreview').innerHTML='';$('#dumpAdd').hidden=true;return}
+  $('#dumpStatus').textContent='Found '+items.length+'. Uncheck any you don’t want.';
+  $('#dumpPreview').innerHTML=items.map((t,i)=>{const l=listById(t.listId),r=repeatText(t.repeat);
+    return '<li><input type="checkbox" checked data-i="'+i+'" id="dp'+i+'"><label for="dp'+i+'" style="margin:0;color:var(--ink);font-size:17px"><b>'+esc(t.title)+'</b>'+
+      '<div class="meta"><span><span class="dot" style="background:'+l.color+'"></span>'+esc(l.name)+'</span><span>'+esc(dueLabel(t).text)+'</span>'+(r?'<span>↻ '+esc(r)+'</span>':'')+'</div></label></li>'}).join('');
+  $('#dumpAdd').hidden=false; $('#dumpAdd').textContent='Add '+items.length;
+}
+$('#dumpPreview').addEventListener('change',()=>{const n=[...$('#dumpPreview').querySelectorAll('input:checked')].length;$('#dumpAdd').textContent='Add '+n;$('#dumpAdd').disabled=!n});
+$('#openDump').onclick=()=>{$('#dumpStatus').textContent='';$('#dumpPreview').innerHTML='';$('#dumpAdd').hidden=true;$('#dumpReply').value='';dump.showModal()};
+$('#dumpClose').onclick=()=>dump.close();
+$('#dumpCopy').onclick=()=>{const t=$('#dumpText').value.trim();if(!t){toast('Type your notes first.');return}copyText(dumpPrompt(t),'Copied. Paste into the Claude app, then paste its reply below.');$('#pasteBack').open=true};
+$('#dumpGo').onclick=async()=>{
+  const t=$('#dumpText').value.trim(); if(!t){toast('Type your notes first.');return}
+  if(!getKey()){$('#dumpStatus').textContent='No API key yet. Tap Copy for Claude app, paste it into Claude, then paste the reply below. Or add a key in Settings.';$('#pasteBack').open=true;return}
+  const b=$('#dumpGo'); b.disabled=true; b.textContent='Sorting…'; $('#dumpStatus').textContent='';
+  try{showPreview(parseItems(await askClaude('You convert notes into structured reminders and reply with JSON only.',dumpPrompt(t),2000)))}
+  catch(err){$('#dumpStatus').textContent='AI error: '+err.message}
+  b.disabled=false; b.textContent='Sort with AI';
+};
+$('#dumpParse').onclick=()=>{try{showPreview(parseItems($('#dumpReply').value))}catch(err){$('#dumpStatus').textContent=err.message}};
+$('#dumpAdd').onclick=()=>{
+  const picked=[...$('#dumpPreview').querySelectorAll('input:checked')].map(c=>dumpItems[+c.dataset.i]);
+  if(!picked.length) return; undoSnap=JSON.stringify(state);
+  picked.forEach(p=>state.tasks.push(Object.assign(newTask(p),p)));
+  save(); dump.close(); $('#dumpText').value=''; renderAll(); toast('Added '+picked.length+' reminder'+(picked.length>1?'s':''),true);
+};
+
+/* ---------- history view ---------- */
+function renderHistory(){
+  const q=$('#histSearch').value.trim().toLowerCase();
+  const rec=openTasks().filter(t=>t.repeat&&t.repeat.mode!=='none'&&(!q||t.title.toLowerCase().includes(q))).map(t=>{
+    const hh=state.history.filter(h=>h.taskId===t.id); let avg='';
+    if(hh.length>=2){const times=hh.map(h=>new Date(h.doneAt).getTime()).sort((a,b)=>a-b);
+      const gaps=times.slice(1).map((x,i)=>(x-times[i])/864e5); avg='about every '+Math.max(1,Math.round(gaps.reduce((a,b)=>a+b,0)/gaps.length))+' days';}
+    return '<div class="recur" data-id="'+t.id+'" data-act="edit" role="button" tabindex="0"><span>'+esc(t.title)+'</span><small>'+(hh.length?'last done '+ago(hh[0].doneAt):'not done yet')+(avg?'<br>'+avg:'')+'</small></div>';
+  }).join('');
+  const hs=state.history.filter(h=>!q||h.title.toLowerCase().includes(q)).slice(0,400);
+  const groups={}; hs.forEach(h=>{const k=fmtD(new Date(h.doneAt));(groups[k]=groups[k]||[]).push(h)});
+  const today=todayStr();
+  let list='';
+  for(const k of Object.keys(groups)){
+    const diff=daysBetween(k,today);
+    list+='<h2 class="sec"><span>'+(diff===0?'Today':diff===1?'Yesterday':niceDate(k))+'</span><span>'+groups[k].length+'</span></h2><div class="panel">'+
+      groups[k].map(h=>{const l=listById(h.listId);return '<div class="hist"><span><span class="dot" style="background:'+l.color+'"></span>'+esc(h.title)+'</span><time>'+new Date(h.doneAt).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})+'</time></div>'}).join('')+'</div>';
+  }
+  $('#histBody').innerHTML=(rec?'<h2 class="sec"><span>Repeating reminders</span></h2><div class="panel">'+rec+'</div>':'')+
+    (list||'<div class="empty"><p>'+(q?'Nothing matches that search.':'Completed reminders will show up here, so you can always check when you last did something.')+'</p></div>');
+}
+$('#histSearch').addEventListener('input',renderHistory);
+
+/* ---------- settings view ---------- */
+function renderSettings(){
+  $('#listsPanel').innerHTML=state.lists.map(l=>{
+    const n=openTasks().filter(t=>t.listId===l.id).length;
+    return '<div class="listrow" data-list="'+l.id+'"><button class="swatch" type="button" data-lact="color" style="background:'+l.color+'" aria-label="Change color of '+esc(l.name)+'"></button>'+
+      '<input value="'+esc(l.name)+'" data-lact="name" aria-label="List name"><span class="count">'+n+'</span>'+
+      '<button class="iconbtn" type="button" data-lact="del" aria-label="Delete '+esc(l.name)+'">×</button></div>';
+  }).join('')||'<p class="hint">No lists yet.</p>';
+  $('#apiKey').value=getKey(); $('#modelSel').value=state.settings.model||'claude-haiku-4-5-20251001';
+  $('#scName').value=state.settings.shortcutName||'Send to Reminders';
+  $('#badgeBtn').hidden=!('setAppBadge' in navigator);
+}
+$('#listsPanel').addEventListener('click',e=>{
+  const b=e.target.closest('[data-lact]'); if(!b) return; const id=b.closest('[data-list]').dataset.list; const l=state.lists.find(x=>x.id===id);
+  if(b.dataset.lact==='color'){l.color=COLORS[(COLORS.indexOf(l.color)+1)%COLORS.length];save();renderAll()}
+  if(b.dataset.lact==='del'){
+    if(state.lists.length<=1){toast('Keep at least one list.');return}
+    const other=state.lists.find(x=>x.id!==id); const n=state.tasks.filter(t=>t.listId===id).length;
+    if(!confirm(n?'Delete “'+l.name+'”? Its '+n+' reminder'+(n>1?'s':'')+' will move to “'+other.name+'”.':'Delete “'+l.name+'”?')) return;
+    state.tasks.forEach(t=>{if(t.listId===id)t.listId=other.id}); state.lists=state.lists.filter(x=>x.id!==id); save(); renderAll();
+  }
+});
+$('#listsPanel').addEventListener('change',e=>{
+  if(e.target.dataset.lact!=='name') return; const id=e.target.closest('[data-list]').dataset.list;
+  const v=e.target.value.trim(); if(v){state.lists.find(x=>x.id===id).name=v;save();renderAll()}
+});
+$('#addListForm').addEventListener('submit',e=>{
+  e.preventDefault(); const v=$('#newListName').value.trim(); if(!v) return;
+  state.lists.push({id:uid(),name:v,color:COLORS[state.lists.length%COLORS.length]}); $('#newListName').value=''; save(); renderAll(); toast('Added list “'+v+'”');
+});
+$('#saveKey').onclick=()=>{const k=$('#apiKey').value.trim();try{k?localStorage.setItem(APIKEY,k):localStorage.removeItem(APIKEY)}catch(e){}toast(k?'Key saved on this device':'Key removed')};
+$('#clearKey').onclick=()=>{try{localStorage.removeItem(APIKEY)}catch(e){}$('#apiKey').value='';toast('Key removed')};
+$('#scName').onchange=e=>{state.settings.shortcutName=e.target.value.trim()||'Send to Reminders';save();toast('Shortcut name saved')};
+$('#modelSel').onchange=e=>{state.settings.model=e.target.value;save()};
+$('#badgeBtn').onclick=async()=>{
+  try{ if('Notification' in window){const p=await Notification.requestPermission(); if(p!=='granted'){toast('Allow notifications for Due in iPhone Settings to show the badge.');return}}
+    updateBadge(); toast('Icon badge is on');
+  }catch(e){toast('Open Due from your home screen first, then try again.')}
+};
+function backupText(){return JSON.stringify(Object.assign({app:'due',exportedAt:new Date().toISOString()},state),null,1)}
+$('#exportBtn').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([backupText()],{type:'application/json'}));a.download='due-backup-'+todayStr()+'.json';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)};
+$('#copyBackup').onclick=()=>copyText(backupText(),'Backup copied. Paste it into Notes or email to keep it safe.');
+function importText(txt){
+  try{const s=JSON.parse(txt); if(!Array.isArray(s.tasks)||!Array.isArray(s.lists)) throw 0;
+    if(!confirm('Replace everything in the app with this backup ('+s.tasks.length+' reminders)?')) return;
+    delete s.app; delete s.exportedAt; undoSnap=JSON.stringify(state); state=Object.assign(defaultState(),s); save(); renderAll(); toast('Backup imported',true);
+  }catch(e){toast('That isn’t a Due backup file.')}
+}
+$('#importBtn').onclick=()=>$('#importFile').click();
+$('#importFile').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>importText(r.result);r.readAsText(f);e.target.value=''};
+$('#pasteImport').onclick=()=>importText($('#pasteBackup').value);
+$('#resetBtn').onclick=()=>{if(!confirm('Erase all reminders, lists and history? Export a backup first if you might want them.'))return;undoSnap=JSON.stringify(state);state=defaultState();save();renderAll();toast('Erased',true)};
+
+/* ---------- badge, icon, nav ---------- */
+function updateBadge(){
+  if(!('setAppBadge' in navigator)) return;
+  const today=todayStr(); const n=openTasks().filter(t=>t.due&&t.due<=today).length;
+  (n?navigator.setAppBadge(n):navigator.clearAppBadge()).catch(()=>{});
+}
+(function makeIcon(){
+  try{const c=document.createElement('canvas');c.width=c.height=180;const x=c.getContext('2d');
+    x.fillStyle='#245E8F';x.fillRect(0,0,180,180);x.strokeStyle='#fff';x.lineWidth=14;x.lineCap='round';x.lineJoin='round';
+    x.beginPath();x.arc(90,90,52,0,Math.PI*2);x.stroke();x.beginPath();x.moveTo(66,92);x.lineTo(84,110);x.lineTo(116,74);x.stroke();
+    const l=document.createElement('link');l.rel='apple-touch-icon';l.href=c.toDataURL('image/png');document.head.appendChild(l);
+  }catch(e){}
+})();
+document.querySelectorAll('nav.tabs button').forEach(b=>b.onclick=()=>{
+  ui.view=b.dataset.view;
+  document.querySelectorAll('nav.tabs button').forEach(x=>x.toggleAttribute('aria-current',x===b));
+  document.querySelectorAll('nav.tabs button[aria-current]').forEach(x=>x.setAttribute('aria-current','page'));
+  document.querySelectorAll('.view').forEach(v=>v.hidden=v.id!=='view-'+ui.view);
+  renderAll(); window.scrollTo(0,0);
+});
+function renderAll(){
+  renderHeader();
+  if(ui.view==='tasks') renderTasks();
+  else if(ui.view==='review') renderReview();
+  else if(ui.view==='history') renderHistory();
+  else renderSettings();
+}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden) renderAll()});
+renderAll(); updateBadge();
+</script>
+</body>
+</html>
